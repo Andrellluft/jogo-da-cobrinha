@@ -13,20 +13,24 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 10px;
       gap: 10px;
     }
 
-    h1 { font-size: 2em; }
+    h1 { font-size: 2em; text-align: center; }
 
     #game {
-      width: 600px;
-      height: 600px;
+      width: 90vmin;
+      height: 90vmin;
+      max-width: 600px;
+      max-height: 600px;
       background: #222;
       border: 4px solid #0f0;
       position: relative;
       overflow: hidden;
+      touch-action: none;
     }
 
     .snake {
@@ -35,7 +39,6 @@
       position: absolute;
       background: linear-gradient(145deg, #0f0, #0a0);
       border-radius: 5px;
-      transition: all 0.08s linear;
     }
 
     .food {
@@ -53,16 +56,18 @@
       100% { transform: scale(1); }
     }
 
-    #controls {
+    #controls, #mobileControls {
       display: flex;
       gap: 10px;
       align-items: center;
       font-size: 1em;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
     #score, #status {
-      margin-top: 10px;
       font-size: 1.2em;
+      text-align: center;
     }
 
     select, button {
@@ -76,8 +81,8 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 600px;
-      height: 600px;
+      width: 100%;
+      height: 100%;
       background: rgba(0,0,0,0.8);
       color: white;
       display: flex;
@@ -86,7 +91,6 @@
       justify-content: center;
       font-size: 1.5em;
       z-index: 10;
-      display: none;
     }
 
     #overlay button {
@@ -94,6 +98,20 @@
       background: #0f0;
       color: #000;
       font-weight: bold;
+    }
+
+    #mobileControls button {
+      width: 60px;
+      height: 60px;
+      font-size: 1.5em;
+      background: #333;
+      color: #0f0;
+      border-radius: 50%;
+      border: 2px solid #0f0;
+    }
+
+    #mobileControls {
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -116,9 +134,21 @@
       <button onclick="startGame()">▶️ Jogar</button>
     </div>
   </div>
-  
+
   <div id="score">Pontuação: 0</div>
   <div id="status"></div>
+
+  <!-- Botões para toque no mobile -->
+  <div id="mobileControls">
+    <div style="display: flex; justify-content: center;">
+      <button onclick="setDirection('up')">⬆️</button>
+    </div>
+    <div style="display: flex; justify-content: center; gap: 20px;">
+      <button onclick="setDirection('left')">⬅️</button>
+      <button onclick="setDirection('down')">⬇️</button>
+      <button onclick="setDirection('right')">➡️</button>
+    </div>
+  </div>
 
   <script>
     const game = document.getElementById('game');
@@ -177,6 +207,7 @@
         score++;
         scoreText.textContent = 'Pontuação: ' + score;
         food = spawnFood();
+        if (navigator.vibrate) navigator.vibrate(100);
       } else {
         snake.pop();
       }
@@ -219,13 +250,44 @@
       return snake.some(seg => seg.x === pos.x && seg.y === pos.y);
     }
 
+    function setDirection(newDir) {
+      if (newDir === 'up' && direction !== 'down') direction = 'up';
+      if (newDir === 'down' && direction !== 'up') direction = 'down';
+      if (newDir === 'left' && direction !== 'right') direction = 'left';
+      if (newDir === 'right' && direction !== 'left') direction = 'right';
+    }
+
     document.addEventListener('keydown', e => {
       const k = e.key;
-      if (k === 'ArrowUp' && direction !== 'down') direction = 'up';
-      if (k === 'ArrowDown' && direction !== 'up') direction = 'down';
-      if (k === 'ArrowLeft' && direction !== 'right') direction = 'left';
-      if (k === 'ArrowRight' && direction !== 'left') direction = 'right';
+      if (k === 'ArrowUp') setDirection('up');
+      if (k === 'ArrowDown') setDirection('down');
+      if (k === 'ArrowLeft') setDirection('left');
+      if (k === 'ArrowRight') setDirection('right');
     });
+
+    // Swipe por toque
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    game.addEventListener('touchstart', e => {
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+    }, { passive: true });
+
+    game.addEventListener('touchend', e => {
+      const touch = e.changedTouches[0];
+      const deltaX = touch.clientX - touchStartX;
+      const deltaY = touch.clientY - touchStartY;
+
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        if (deltaX > 30) setDirection('right');
+        else if (deltaX < -30) setDirection('left');
+      } else {
+        if (deltaY > 30) setDirection('down');
+        else if (deltaY < -30) setDirection('up');
+      }
+    }, { passive: true });
 
     pauseBtn.addEventListener('click', () => {
       paused = !paused;
@@ -241,7 +303,6 @@
       }
     });
 
-    // Início com overlay
     overlay.style.display = 'flex';
   </script>
 </body>
