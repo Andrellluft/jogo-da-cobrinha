@@ -22,10 +22,8 @@
     h1 { font-size: 2em; text-align: center; }
 
     #game {
-      width: 90vmin;
-      height: 90vmin;
-      max-width: 600px;
-      max-height: 600px;
+      width: calc(20px * 20); /* 400px */
+      height: calc(20px * 20);
       background: #222;
       border: 4px solid #0f0;
       position: relative;
@@ -39,6 +37,10 @@
       position: absolute;
       background: linear-gradient(145deg, #0f0, #0a0);
       border-radius: 5px;
+    }
+
+    .snake.alt {
+      background: linear-gradient(145deg, #00f2ff, #005577);
     }
 
     .food {
@@ -65,7 +67,7 @@
       justify-content: center;
     }
 
-    #score, #status {
+    #score, #recorde, #status {
       font-size: 1.2em;
       text-align: center;
     }
@@ -136,9 +138,9 @@
   </div>
 
   <div id="score">Pontuação: 0</div>
+  <div id="recorde">🏆 Recorde: 0</div>
   <div id="status"></div>
 
-  <!-- Botões para toque no mobile -->
   <div id="mobileControls">
     <div style="display: flex; justify-content: center;">
       <button onclick="setDirection('up')">⬆️</button>
@@ -154,20 +156,23 @@
     const game = document.getElementById('game');
     const overlay = document.getElementById('overlay');
     const scoreText = document.getElementById('score');
+    const recordeText = document.getElementById('recorde');
     const statusText = document.getElementById('status');
     const pauseBtn = document.getElementById('pauseBtn');
     const difficultySelect = document.getElementById('difficulty');
 
     const gridSize = 20;
-    const gameSize = 600;
-    const totalCells = gameSize / gridSize;
+    const totalCells = 20;
 
     let snake = [];
     let direction = 'right';
     let food = {};
     let score = 0;
+    let recorde = localStorage.getItem('recorde') || 0;
     let interval = null;
     let paused = false;
+
+    recordeText.textContent = "🏆 Recorde: " + recorde;
 
     function startGame() {
       overlay.style.display = 'none';
@@ -189,7 +194,6 @@
       if (direction === 'left') head.x--;
       if (direction === 'right') head.x++;
 
-      // Colisão
       if (
         head.x < 0 || head.x >= totalCells ||
         head.y < 0 || head.y >= totalCells ||
@@ -198,6 +202,12 @@
         clearInterval(interval);
         overlay.style.display = 'flex';
         document.getElementById('gameMessage').innerText = `Game Over! Pontuação: ${score}`;
+        
+        if (score > recorde) {
+          recorde = score;
+          localStorage.setItem('recorde', recorde);
+          recordeText.textContent = "🏆 Recorde: " + recorde;
+        }
         return;
       }
 
@@ -218,10 +228,13 @@
     function draw() {
       game.querySelectorAll('.snake, .food').forEach(e => e.remove());
 
+      const useAltSkin = score >= 11;
+
       // Cobra
       snake.forEach(part => {
         const s = document.createElement('div');
         s.className = 'snake';
+        if (useAltSkin) s.classList.add('alt');
         s.style.left = part.x * gridSize + 'px';
         s.style.top = part.y * gridSize + 'px';
         game.appendChild(s);
@@ -265,7 +278,6 @@
       if (k === 'ArrowRight') setDirection('right');
     });
 
-    // Swipe por toque
     let touchStartX = 0;
     let touchStartY = 0;
 
